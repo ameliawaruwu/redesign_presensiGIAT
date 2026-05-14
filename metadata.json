@@ -1,0 +1,7 @@
+{
+  "name": "Presensi Koperasi Giat",
+  "description": "Aplikasi presensi pegawai Koperasi Giat dengan fitur scan barcode dan monitoring admin.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
