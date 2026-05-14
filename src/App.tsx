@@ -1161,13 +1161,12 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
 }
 
 function EmployeeStatsView({ attendanceData }: { attendanceData: AttendanceData[] }) {
-  const [viewState, setViewState] = useState<'grid' | 'add' | 'edit' | 'stats'>('grid');
+  const [viewState, setViewState] = useState<'grid' | 'stats'>('grid');
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [startDate, setStartDate] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('Semua');
-  const [deletedEmployees, setDeletedEmployees] = useState<Set<string>>(new Set());
 
   // Generate employee list from attendance data
   const employeesMap = new Map();
@@ -1187,7 +1186,7 @@ function EmployeeStatsView({ attendanceData }: { attendanceData: AttendanceData[
   });
   
   const allEmployees = Array.from(employeesMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-  const activeEmployees = allEmployees.filter(e => !deletedEmployees.has(e.name));
+  const activeEmployees = allEmployees;
   const displayEmployees = activeEmployees
     .filter(e => filter === 'Semua' || e.contract === filter)
     .filter(e => e.name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -1199,14 +1198,6 @@ function EmployeeStatsView({ attendanceData }: { attendanceData: AttendanceData[
   }).map(d => d.Name));
   const attendancePercentage = activeEmployees.length > 0 ? Math.round((uniquePresentToday.size / activeEmployees.length) * 100) : 0;
 
-  const handleDelete = (name: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (confirm(`Apakah Anda yakin ingin menghapus data ${name}?`)) {
-      const newDeleted = new Set(deletedEmployees);
-      newDeleted.add(name);
-      setDeletedEmployees(newDeleted);
-    }
-  };
 
   const stats = selectedEmployee ? attendanceData.filter(d => {
     const dDate = typeof d.Date === 'string' ? d.Date.split('T')[0] : format(new Date(d.Date), 'yyyy-MM-dd');
@@ -1217,92 +1208,6 @@ function EmployeeStatsView({ attendanceData }: { attendanceData: AttendanceData[
   const totalLate = stats.filter(d => d.Status === 'Terlambat').length;
   const overtimeData = stats.filter(d => d.Shift === 'SHIFT LEMBUR');
 
-  if (viewState === 'add' || viewState === 'edit') {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-3 text-slate-500 text-sm font-medium">
-          <button onClick={() => setViewState('grid')} className="hover:text-[#B21B1B] transition-colors">Data Pegawai</button>
-          <ChevronRight size={14} />
-          <span className="text-[#B21B1B] font-bold">{viewState === 'add' ? 'Tambah Pegawai Baru' : 'Edit Data Pegawai'}</span>
-        </div>
-        
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 space-y-8">
-          <div className="flex items-start justify-between border-b border-slate-100 pb-6">
-            <div>
-              <h2 className="text-xl font-extrabold text-slate-800">{viewState === 'add' ? 'Informasi Personal & Pekerjaan' : 'Edit Informasi Pegawai'}</h2>
-              <p className="text-slate-500 text-sm mt-1">Lengkapi data di bawah ini untuk mendaftarkan pegawai baru ke sistem.</p>
-            </div>
-            <div className="px-4 py-1.5 bg-red-50 text-[#B21B1B] text-[10px] font-bold uppercase tracking-wider rounded-full">Draft Otomatis</div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nama Lengkap</label>
-              <input type="text" placeholder="Contoh: Budi Santoso" className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium focus:ring-2 focus:ring-[#B21B1B]/20 outline-none transition-all" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Departemen / Divisi</label>
-              <select className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium focus:ring-2 focus:ring-[#B21B1B]/20 outline-none transition-all appearance-none">
-                <option>Pilih Departemen</option>
-                <option>Operasional</option>
-                <option>Keuangan</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nomor Induk Pegawai (NIP)</label>
-              <input type="text" placeholder="GIAT-2024-XXXX" className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium focus:ring-2 focus:ring-[#B21B1B]/20 outline-none transition-all" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status Kepegawaian</label>
-              <div className="flex gap-4">
-                <label className="flex-1 p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-center gap-3 cursor-pointer">
-                  <input type="radio" name="status" className="w-4 h-4 text-[#B21B1B] focus:ring-[#B21B1B]" />
-                  <span className="text-sm font-medium">Tetap</span>
-                </label>
-                <label className="flex-1 p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-center gap-3 cursor-pointer">
-                  <input type="radio" name="status" className="w-4 h-4 text-[#B21B1B] focus:ring-[#B21B1B]" />
-                  <span className="text-sm font-medium">Kontrak</span>
-                </label>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Jabatan</label>
-              <select className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium focus:ring-2 focus:ring-[#B21B1B]/20 outline-none transition-all appearance-none">
-                <option>Pilih Jabatan</option>
-                <option>Manager</option>
-                <option>Staff</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tanggal Bergabung</label>
-              <input type="date" className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 text-sm font-medium focus:ring-2 focus:ring-[#B21B1B]/20 outline-none transition-all" />
-            </div>
-          </div>
-
-          <div className="p-8 border-2 border-dashed border-slate-200 bg-slate-50 rounded-2xl flex items-center gap-6 relative">
-            <input type="file" id="photo-upload" className="hidden" accept="image/*" />
-            <label htmlFor="photo-upload" className="w-24 h-24 rounded-full border border-slate-300 bg-white flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:bg-slate-100 transition-colors">
-              <Camera size={24} className="mb-1" />
-              <span className="text-[10px] font-bold">Upload Foto</span>
-            </label>
-            <div>
-              <h4 className="font-bold text-slate-800">Foto Profil Pegawai</h4>
-              <p className="text-xs text-slate-500 mt-1">Format JPG, PNG, atau WEBP. Maksimal ukuran file 2MB dengan aspek rasio 1:1 untuk hasil terbaik.</p>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-4 pt-6 border-t border-slate-100">
-            <button onClick={() => setViewState('grid')} className="px-8 py-4 rounded-xl font-bold text-red-500 hover:bg-red-50 transition-colors border border-red-200">
-              Batal
-            </button>
-            <button onClick={() => setViewState('grid')} className="px-8 py-4 rounded-xl font-bold text-white bg-[#B21B1B] shadow-lg shadow-red-900/20 hover:bg-[#901515] transition-colors flex items-center gap-2">
-              <Upload size={18} /> {viewState === 'add' ? 'Simpan Pegawai' : 'Simpan Perubahan'}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (viewState === 'stats') {
     return (
@@ -1415,11 +1320,6 @@ function EmployeeStatsView({ attendanceData }: { attendanceData: AttendanceData[
           <h2 className="text-2xl font-black text-slate-800">Data Pegawai</h2>
           <p className="text-slate-500 text-sm mt-1">Kelola informasi dan tinjau kinerja tim Koperasi GIAT secara mendalam.</p>
         </div>
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <button onClick={() => setViewState('add')} className="flex-1 md:flex-none flex justify-center items-center gap-2 px-6 py-3 rounded-xl font-bold text-white bg-[#B21B1B] shadow-lg shadow-red-900/20 hover:bg-[#901515] transition-colors text-sm">
-            <Plus size={16} /> Tambah Pegawai
-          </button>
-        </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4">
@@ -1470,14 +1370,7 @@ function EmployeeStatsView({ attendanceData }: { attendanceData: AttendanceData[
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {displayEmployees.map((emp) => (
           <div key={emp.name} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hover:shadow-lg transition-all flex flex-col items-center text-center group relative overflow-hidden">
-            <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={() => { setSelectedEmployee(emp.name); setViewState('edit'); }} className="p-1.5 bg-blue-50 text-blue-500 rounded-md hover:bg-blue-100 transition-colors" title="Edit Pegawai">
-                <Edit2 size={14} />
-              </button>
-              <button onClick={(e) => handleDelete(emp.name, e)} className="p-1.5 bg-red-50 text-red-500 rounded-md hover:bg-red-100 transition-colors" title="Hapus Pegawai">
-                <Trash2 size={14} />
-              </button>
-            </div>
+
             <div className="relative mb-4">
               <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center overflow-hidden border-4 border-white shadow-md">
                 <User className="text-slate-400 w-10 h-10" />
