@@ -788,12 +788,6 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             <div className="lg:hidden flex items-center gap-2">
               <span className="font-extrabold text-[#B21B1B]">Koperasi GIAT</span>
             </div>
-            {activeTab === 'employees' && (
-              <div className="hidden lg:flex relative w-96 ml-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input type="text" placeholder="Cari data pegawai..." className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-[#B21B1B]/20 transition-all" />
-              </div>
-            )}
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3 pl-4">
@@ -1166,7 +1160,9 @@ function EmployeeStatsView({ attendanceData }: { attendanceData: AttendanceData[
   const [startDate, setStartDate] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState('Semua');
+  const [showAddEmployeePopup, setShowAddEmployeePopup] = useState(false);
+  const [newEmployeeName, setNewEmployeeName] = useState('');
+  const [addedEmployees, setAddedEmployees] = useState<{name: string, role: string, status: string, contract: string}[]>([]);
 
   // Generate employee list from attendance data
   const employeesMap = new Map();
@@ -1184,11 +1180,16 @@ function EmployeeStatsView({ attendanceData }: { attendanceData: AttendanceData[
       });
     }
   });
+
+  addedEmployees.forEach(emp => {
+    if (!employeesMap.has(emp.name)) {
+      employeesMap.set(emp.name, emp);
+    }
+  });
   
   const allEmployees = Array.from(employeesMap.values()).sort((a, b) => a.name.localeCompare(b.name));
   const activeEmployees = allEmployees;
   const displayEmployees = activeEmployees
-    .filter(e => filter === 'Semua' || e.contract === filter)
     .filter(e => e.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const todayDateStr = format(new Date(), 'yyyy-MM-dd');
@@ -1232,8 +1233,7 @@ function EmployeeStatsView({ attendanceData }: { attendanceData: AttendanceData[
             </div>
             <div>
               <h3 className="font-extrabold text-slate-800 text-lg leading-tight">{selectedEmployee}</h3>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">ID: GIAT-2024-XXXX</p>
-              <p className="text-xs text-[#B21B1B] font-medium">Operasional</p>
+              <p className="text-xs text-[#B21B1B] font-medium mt-1">Operasional</p>
             </div>
           </div>
           <div className="md:col-span-1 bg-white p-6 rounded-3xl border-t-4 border-t-green-500 shadow-sm flex flex-col justify-center items-center text-center">
@@ -1315,56 +1315,44 @@ function EmployeeStatsView({ attendanceData }: { attendanceData: AttendanceData[
   // viewState === 'grid'
   return (
     <div className="space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-slate-200 pb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-slate-200 pb-6">
         <div>
           <h2 className="text-2xl font-black text-slate-800">Data Pegawai</h2>
           <p className="text-slate-500 text-sm mt-1">Kelola informasi dan tinjau kinerja tim Koperasi GIAT secara mendalam.</p>
         </div>
+        <button 
+          onClick={() => setShowAddEmployeePopup(true)} 
+          className="bg-[#B21B1B] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-[#901515] transition-all shadow-lg shadow-red-900/20 active:scale-95 whitespace-nowrap"
+        >
+          <Plus size={20} />
+          Tambah Pegawai
+        </button>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4">
+      <div className="flex flex-col md:flex-row gap-4 items-stretch">
         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex-1 flex flex-col justify-center relative overflow-hidden">
           <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#B21B1B]"></div>
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">TOTAL PEGAWAI</div>
-          <div className="text-4xl font-black text-slate-800">{activeEmployees.length}</div>
+          <div className="text-3xl font-black text-slate-800">{activeEmployees.length}</div>
         </div>
         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex-1 flex flex-col justify-center relative overflow-hidden">
           <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-500"></div>
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">KEHADIRAN HARI INI</div>
-          <div className="text-4xl font-black text-slate-800">{attendancePercentage}%</div>
+          <div className="text-3xl font-black text-slate-800">{attendancePercentage}%</div>
         </div>
-        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex-[2] flex flex-col justify-center">
-          <div className="flex justify-between items-center mb-4">
-             <div className="text-xs font-bold text-slate-800">Filter Cepat</div>
-             <Filter size={16} className="text-slate-400" />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {['Semua', 'Staff Tetap', 'Kontrak', 'Magang'].map(f => (
-              <button 
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-colors ${
-                  filter === f ? 'bg-slate-100 text-slate-600' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50'
-                }`}
-              >
-                {f}
-              </button>
-            ))}
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex-[2] flex flex-col justify-center">
+          <div className="text-xs font-bold text-slate-800 mb-3">Pencarian Pegawai</div>
+          <div className="flex items-center gap-3 text-slate-400 w-full bg-slate-50 px-4 py-3 rounded-xl border border-slate-200">
+            <Search size={18} />
+            <input 
+              type="text" 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Cari data pegawai..." 
+              className="bg-transparent border-none outline-none text-sm w-full font-medium text-slate-700" 
+            />
           </div>
         </div>
-      </div>
-
-      <div className="flex justify-between items-center bg-white p-2 pl-4 rounded-xl shadow-sm border border-slate-100">
-         <div className="flex items-center gap-2 text-slate-400 w-full">
-           <Search size={18} />
-           <input 
-             type="text" 
-             value={searchQuery}
-             onChange={e => setSearchQuery(e.target.value)}
-             placeholder="Cari data pegawai..." 
-             className="bg-transparent border-none outline-none text-sm w-full font-medium" 
-           />
-         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1402,6 +1390,42 @@ function EmployeeStatsView({ attendanceData }: { attendanceData: AttendanceData[
           Muat Lebih Banyak <ChevronRight size={14} className="rotate-90" />
         </button>
       </div>
+
+      <AnimatePresence>
+        {showAddEmployeePopup && (
+          <Modal title="Tambah Pegawai" onClose={() => setShowAddEmployeePopup(false)}>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Nama Pegawai</label>
+                <input 
+                  type="text" 
+                  value={newEmployeeName}
+                  onChange={(e) => setNewEmployeeName(e.target.value)}
+                  className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-[#B21B1B]/20 outline-none transition-all text-sm"
+                  placeholder="Masukkan nama pegawai"
+                />
+              </div>
+              <button 
+                onClick={() => {
+                  if (newEmployeeName.trim()) {
+                    setAddedEmployees([...addedEmployees, {
+                      name: newEmployeeName.trim().toUpperCase(),
+                      role: 'Staff',
+                      status: 'AKTIF',
+                      contract: 'Staff Tetap'
+                    }]);
+                    setNewEmployeeName('');
+                    setShowAddEmployeePopup(false);
+                  }
+                }}
+                className="w-full py-4 bg-[#B21B1B] text-white rounded-xl font-bold hover:bg-[#901515] transition-all shadow-lg shadow-red-900/20 active:scale-95"
+              >
+                SIMPAN
+              </button>
+            </div>
+          </Modal>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
